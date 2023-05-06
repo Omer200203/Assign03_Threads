@@ -1,117 +1,31 @@
-# Assign03_Threads
+Conway Game Of Life Using Posix Threads
+Operating System Assignment # 3
+21k-3066
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-#include<time.h>
-#include <errno.h>
-#include <signal.h>
-#define SizeOfGrid 15
-#define ThreadsNumber 10
-#define GenerationsNumber 15
+#REPORT
 
-int Grid[SizeOfGrid][SizeOfGrid];
-pthread_mutex_t Grid_MUTEX;
-pthread_cond_t Grid_CONDITION;
+* Create a two-dimensional array to represent the cell grid, and use conditional statements to apply the game's rules:
+1) Give the grid of cells a random starting value.
+2) Use conditional statements to put the Game of Life's rules into action. Based on the number of living neighbours a cell has, determine the condition of each cell in the grid in the following generation. Adjust the grid as necessary.
+3) For the chosen number of generations, repeat the previous step.
+![image](https://user-images.githubusercontent.com/125944925/236648132-18ebae5e-bbcf-489d-97b8-0e73f3caac31.png)
+![image](https://user-images.githubusercontent.com/125944925/236648165-5da572f5-ecc1-4a26-b8d8-b52e22343059.png)
 
-void *calculate(void *arg) {
-    int ID = *((int*)arg);
-    int Start = ID * (SizeOfGrid / ThreadsNumber);
-    int End = (ID + 1) * (SizeOfGrid / ThreadsNumber);
+* To execute the Game of Life algorithm concurrently, create multiple POSIX threads:
+1) Allocate a single thread to each area of the grid that is divided into equal-sized pieces.
+2) To avoid data races, each thread will calculate the subsequent generation for the given area of the grid and update the shared grid using a mutex.
+3) To make sure that each thread has finished updating the grid before the next generation is calculated, synchronise the threads using condition variables.
 
-    for (int Generation = 0; Generation < GenerationsNumber; Generation++) {
-        for (int i = Start; i < End; i++) {
-            for (int j = 0; j < SizeOfGrid; j++) {
-                int Neighbors = 0;
-                for (int x = i-1; x <= i+1; x++) {
-                    for (int y = j-1; y <= j+1; y++) {
-                        if (x == i && y == j) continue;
-                        if (x >= 0 && x < SizeOfGrid && y >= 0 && y < SizeOfGrid && Grid[x][y] == 1) {
-                            Neighbors++;
-                        }
-                    }
-                }
+* To synchronise access to shared data structures like the cell grid, use mutexes and condition variables:
+1) To avoid data races when updating the shared grid, use a mutex.
+2) To let the main thread know when a thread has done updating its section of the grid, use a condition variable.
+![image](https://user-images.githubusercontent.com/125944925/236648217-7ffe6f41-4372-4acd-b3d3-f78c299b4f71.png)
 
-                if (Grid[i][j] == 1 && (Neighbors < 2 || Neighbors > 3)) {
-                    Grid[i][j] = 0;
-                } else if (Grid[i][j] == 0 && Neighbors == 3) {
-                    Grid[i][j] = 1;
-                }
-            }
-        }
+* Shell scripting can be used to gauge the speedup brought about by running the finished application with varying thread counts:
+1) To determine how long it takes for your programme to run with various amount of threads, use the time command.
+2) Plot a graph to show the increase in speed brought about by running the programme with different numbers of threads.
+![image](https://user-images.githubusercontent.com/125944925/236648265-be017250-ed3a-4249-bc19-71033b2629f1.png)
 
-        pthread_mutex_lock(&Grid_MUTEX);
-        if (ID == 0) {
-            pthread_cond_broadcast(&Grid_CONDITION);
-        } else {
-            while (pthread_cond_wait(&Grid_CONDITION, &Grid_MUTEX) != 0);
-        }
-        pthread_mutex_unlock(&Grid_MUTEX);
-
-        if (ID == 0) {
-            printf("****Generation Number %d****\n", Generation);
-            for (int i = 0; i < SizeOfGrid; i++) {
-                for (int j = 0; j < SizeOfGrid; j++) {
-                    printf("%c", (Grid[i][j] == 1 ? 'O'  : ' '));
-                }
-                printf("\n");
-            }
-        }
-    }
-    return NULL;
-}
-
-int main() {
-
-    clock_t Starting, Ending;
-    double TotalTime;
-    
-    Starting = clock();
-    for (int i = 0; i < SizeOfGrid; i++) {
-        for (int j = 0; j < SizeOfGrid; j++) {
-            Grid[i][j] = rand() % 2;
-        }
-    }
-
-    pthread_mutex_init(&Grid_MUTEX, NULL);
-    pthread_cond_init(&Grid_CONDITION, NULL);
-
-    pthread_t threads[ThreadsNumber];
-    int thread_IDS[ThreadsNumber];
-    for (int i = 0; i < ThreadsNumber; i++) {
-        thread_IDS[i] = i;
-        pthread_create(&threads[i], NULL, calculate, &thread_IDS[i]);
-    }
-    
-    Ending = clock();
-    TotalTime = ((double) (Ending - Starting)) / CLOCKS_PER_SEC;
-    printf("Time Taken with %d Threads: %f",ThreadsNumber,TotalTime);
-
-    int Finish = 0;
-    struct timespec Time;
-    while (!Finish) {
-        pthread_mutex_lock(&Grid_MUTEX);
-        clock_gettime(CLOCK_REALTIME, &Time);
-        Time.tv_sec += 1;  
-        int Returns = pthread_cond_timedwait(&Grid_CONDITION, &Grid_MUTEX, &Time);
-        if (Returns == ETIMEDOUT) {
-            Finish = 1;
-            for (int i = 0; i < ThreadsNumber; i++) {
-                if (pthread_kill(threads[i], 0) == 0) {
-                    Finish = 0;
-                    break;
-                }
-            }
-        }
-        pthread_mutex_unlock(&Grid_MUTEX);
-    }
-    
-    for (int i = 0; i < ThreadsNumber; i++) {
-        pthread_join(threads[i], NULL);
-    }
-
-    pthread_mutex_destroy(&Grid_MUTEX);
-    pthread_cond_destroy(&Grid_CONDITION);
-
-    return 0;
-}
+* Report your implementation in full, mentioning any design choices you made and the outcomes of your speedup measurements:
+1) Describe your implementation strategy, including the choices you made for the use of data structures, synchronisation techniques, and thread allocation.
+2) Analyse the performance improvements made possible by running the programme with many threads and present the results of your speedup measurements in a table or graph.
