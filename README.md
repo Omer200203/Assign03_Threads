@@ -29,3 +29,4 @@ Operating System Assignment # 3
 * Report your implementation in full, mentioning any design choices you made and the outcomes of your speedup measurements:
 1) Describe your implementation strategy, including the choices you made for the use of data structures, synchronisation techniques, and thread allocation.
 2) Analyse the performance improvements made possible by running the programme with many threads and present the results of your speedup measurements in a table or graph.
+![image](https://user-images.githubusercontent.com/125944925/236648587-57fbacb2-3f3d-4dd8-8389-d179d1ebd9b9.png)
